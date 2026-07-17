@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tritox Login Queue</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#16181C; --surface-1:#1C1F24; --surface-2:#1F2227; --border:#2A2D33; --border-strong:#34373D;
+    --text:#EDEEF0; --text-secondary:#9A9EA6; --text-muted:#6D717A;
+    --blue:#5B9BD5; --blue-bg:#26405B; --blue-text:#8CBEEE;
+    --green-bg:#233A28; --green-text:#9FD9A0;
+    --danger-text:#F0A9A6; --radius:8px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  input,select,button{font-family:inherit;font-size:13px;}
+  input,select{width:100%;padding:9px 10px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-1);color:var(--text);}
+  button{cursor:pointer;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);color:var(--text);padding:9px 14px;}
+  .btn-primary{background:var(--blue);color:#0B1E2E;border:none;font-weight:500;}
+  .hidden{display:none !important;}
+  .card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:16px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:0.5px solid var(--border);}
+  .topbar a{color:var(--text-secondary);font-size:12px;text-decoration:none;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:6px 12px;}
+  .wrap{max-width:420px;margin:0 auto;padding:24px 16px;}
+  .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .login-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:2.5rem 2rem;width:100%;max-width:340px;text-align:center;}
+  .error{color:var(--danger-text);font-size:12px;margin:8px 0 0;min-height:16px;}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-page">
+  <div class="login-card">
+    <img src="logo.png" alt="Tritox logo" style="width:52px;height:52px;margin-bottom:10px;" />
+    <p style="font-size:16px;font-weight:500;margin:0 0 2px;">Tritox login queue</p>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 24px;">Farmers OTP coordination</p>
+    <div style="text-align:left;margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Email</label>
+      <input id="login-email" type="text" placeholder="ravi@tritoxtechnologies.com" />
+    </div>
+    <div style="text-align:left;margin-bottom:20px;">
+      <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Password</label>
+      <input id="login-password" type="password" placeholder="********" />
+    </div>
+    <button id="login-btn" class="btn-primary" style="width:100%;">Sign in</button>
+    <p id="login-error" class="error"></p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <img src="logo.png" alt="" style="width:20px;height:20px;" />
+      <span style="font-size:13px;font-weight:500;">Login queue</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="../index.html">QC Tool</a>
+      <button id="logout-btn" style="font-size:11px;padding:6px 10px;">Sign out</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:12px;color:var(--text-secondary);margin:0 0 4px;">Signed in as</p>
+      <p id="me-name" style="font-size:14px;font-weight:500;margin:0;"></p>
+    </div>
+
+    <div class="card">
+      <div id="queue-indicator" style="font-size:12px;margin-bottom:12px;"></div>
+
+      <div id="queue-idle">
+        <select id="account-select" style="margin-bottom:8px;"></select>
+        <button id="start-login-btn" class="btn-primary" style="width:100%;">Start login</button>
+      </div>
+
+      <div id="queue-busy-other" class="hidden" style="font-size:13px;color:var(--text-secondary);text-align:center;padding:12px 0;"></div>
+
+      <div id="queue-mine" class="hidden">
+        <p id="otp-waiting" style="font-size:12px;color:var(--text-muted);text-align:center;">Waiting for code&hellip;</p>
+        <div id="otp-ready" class="hidden" style="background:var(--green-bg);border-radius:var(--radius);padding:16px;text-align:center;margin-bottom:10px;">
+          <p style="font-size:11px;color:var(--green-text);margin:0 0 4px;">OTP received</p>
+          <p id="otp-code-display" style="font-size:24px;font-weight:500;letter-spacing:2px;color:var(--green-text);margin:0;"></p>
+        </div>
+        <button id="copy-otp-btn" class="hidden" style="width:100%;margin-bottom:8px;">Copy code</button>
+        <div id="manual-otp-entry" class="hidden" style="margin-bottom:10px;">
+          <p style="font-size:10px;color:var(--text-muted);margin:0 0 4px;">Manual entry &middot; iPhone account only</p>
+          <input id="manual-otp-input" type="text" placeholder="Paste code" />
+        </div>
+        <button id="done-login-btn" class="btn-primary" style="width:100%;">Done, logged in</button>
+      </div>
+    </div>
+
+    <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:16px;">
+      Attendance tracking isn't part of this page yet &mdash; this is login/OTP coordination only.
+    </p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDyaOkNaxRZsOeU80Q1e8v6VY87uurMteI",
+  authDomain: "tritox-portal.firebaseapp.com",
+  projectId: "tritox-portal",
+  storageBucket: "tritox-portal.firebasestorage.app",
+  messagingSenderId: "634424438129",
+  appId: "1:634424438129:web:d7a2a2cea4d911f8425ad0"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+let accounts = [];
+
+document.getElementById("login-btn").addEventListener("click", () => {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errEl = document.getElementById("login-error");
+  errEl.textContent = "";
+  if(!email || !password){ errEl.textContent = "Enter your email and password."; return; }
+  auth.signInWithEmailAndPassword(email, password).catch(() => { errEl.textContent = "Couldn't sign in. Check your details."; });
+});
+document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
+
+auth.onAuthStateChanged(async user => {
+  if(!user){
+    document.getElementById("login-screen").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+    return;
+  }
+  const snap = await db.collection("users").doc(user.uid).get();
+  const profile = snap.exists ? snap.data() : { name: user.email, role: "staff" };
+  currentUser = { uid: user.uid, name: profile.name };
+
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("me-name").textContent = currentUser.name;
+
+  await loadAccounts();
+  db.collection("queue").doc("current").onSnapshot(snap => renderQueue(snap.exists ? snap.data() : {status:"open"}));
+});
+
+async function loadAccounts(){
+  const snap = await db.collection("accounts").get();
+  accounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const sel = document.getElementById("account-select");
+  sel.innerHTML = '<option value="">Select agency account</option>';
+  accounts.forEach(acc => {
+    const opt = document.createElement("option");
+    opt.value = acc.id; opt.textContent = acc.name;
+    sel.appendChild(opt);
+  });
+}
+
+function renderQueue(q){
+  const indicator = document.getElementById("queue-indicator");
+  const idle = document.getElementById("queue-idle");
+  const busyOther = document.getElementById("queue-busy-other");
+  const mine = document.getElementById("queue-mine");
+
+  if(!q || q.status !== "busy"){
+    indicator.innerHTML = '<span style="color:var(--green-text);"><i class="ti ti-circle-check"></i> Queue open</span>';
+    idle.classList.remove("hidden"); busyOther.classList.add("hidden"); mine.classList.add("hidden");
+    return;
+  }
+  indicator.innerHTML = '<span style="color:var(--danger-text);"><i class="ti ti-circle-dot"></i> Queue busy</span>';
+  if(q.uid === currentUser.uid){
+    idle.classList.add("hidden"); busyOther.classList.add("hidden"); mine.classList.remove("hidden");
+    renderOtp(q);
+  } else {
+    idle.classList.add("hidden"); mine.classList.add("hidden"); busyOther.classList.remove("hidden");
+    busyOther.textContent = `${q.name} is logging in \u00b7 ${q.accountName}`;
+  }
+}
+function renderOtp(q){
+  const account = accounts.find(a => a.id === q.accountId);
+  const waiting = document.getElementById("otp-waiting");
+  const ready = document.getElementById("otp-ready");
+  const copyBtn = document.getElementById("copy-otp-btn");
+  const manualEntry = document.getElementById("manual-otp-entry");
+  if(account && account.type === "iphone" && !q.otp){
+    waiting.classList.add("hidden"); ready.classList.add("hidden"); copyBtn.classList.add("hidden"); manualEntry.classList.remove("hidden");
+  } else if(q.otp){
+    waiting.classList.add("hidden"); manualEntry.classList.add("hidden"); ready.classList.remove("hidden"); copyBtn.classList.remove("hidden");
+    document.getElementById("otp-code-display").textContent = q.otp;
+  } else {
+    waiting.classList.remove("hidden"); ready.classList.add("hidden"); copyBtn.classList.add("hidden"); manualEntry.classList.add("hidden");
+  }
+}
+document.getElementById("start-login-btn").addEventListener("click", () => {
+  const accId = document.getElementById("account-select").value;
+  if(!accId) return;
+  const acc = accounts.find(a => a.id === accId);
+  db.collection("queue").doc("current").set({
+    status:"busy", uid: currentUser.uid, name: currentUser.name,
+    accountId: acc.id, accountName: acc.name,
+    startedAt: firebase.firestore.FieldValue.serverTimestamp(), otp: null
+  });
+});
+document.getElementById("manual-otp-input").addEventListener("change", e => {
+  const code = e.target.value.trim();
+  if(code) db.collection("queue").doc("current").update({ otp: code });
+});
+document.getElementById("copy-otp-btn").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("otp-code-display").textContent);
+});
+document.getElementById("done-login-btn").addEventListener("click", async () => {
+  const snap = await db.collection("queue").doc("current").get();
+  const q = snap.data();
+  if(q){
+    db.collection("loginHistory").add({
+      uid:q.uid, name:q.name, accountId:q.accountId, accountName:q.accountName,
+      startedAt:q.startedAt, endedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+  db.collection("queue").doc("current").set({ status:"open" });
+  document.getElementById("manual-otp-input").value = "";
+});
+</script>
+</body>
+</html>
